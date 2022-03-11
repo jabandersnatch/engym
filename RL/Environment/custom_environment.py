@@ -108,13 +108,15 @@ class StackedBarsEnv(Env):
         # Calculate the total weight of the bar
         self.total_weight = t_w_bar
 
+        # Save the current state in the array
+
         self.state = np.array([position, t_mass, total_def, d_def], dtype=np.float64)
 
         # Calculate the reward
 
         # create a atan function that goes from 0 to 1 with the distance 
 
-        reward = (1/(r_bar ** 2 * np.pi * h_bar * self.rho))/(1/(self.r_min ** 2 * np.pi * self.min_h * self.goal_dist * self.rho)) * self.min_h
+        reward = 0 
         # Check if the bar has reached the goal
         done = False
 
@@ -144,13 +146,11 @@ class StackedBarsEnv(Env):
         self.list_render = np.array([0, 0, 0, 0, 0, 0], dtype=np.float64)
         return self.state
     
-    def render(self, mode='human', n_episode=None):
+    def render(self, mode='human', n_episode=None, n_run=None):
         """
         This function is called every time the environment is rendered.
         """
         if mode == 'human':
             
-            bar_builder = Bar_Builder(max_dist_y=self.goal_dist, n_episode=n_episode)
+            bar_builder = Bar_Builder(max_dist_y=self.goal_dist, n_episode=n_episode, n_run=n_run)
             bar_builder.run_render(self.list_render)
-
-    

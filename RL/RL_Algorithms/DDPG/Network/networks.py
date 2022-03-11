@@ -2,7 +2,7 @@ import os
 import numpy as np
 import tensorboard
 import tensorflow as tf
-from keras.layers import Dense, Input, BatchNormalization, Activation, Dropout
+from keras.layers import Dense, BatchNormalization
 
 
 # Set up gpu options
@@ -130,7 +130,7 @@ class ActorNetwork(object):
         self.unnormalized_actor_gradients = tf.gradients(
             self.mu, self.params, -self.action_gradient)
 
-        self.actor_gradients = list(map(lambda x: tf.compat.v1.div(x, self.batch_size),
+        self.actor_gradients = list(map(lambda x: tf.math.divide(x, self.batch_size),
                                         self.unnormalized_actor_gradients))
 
         self.optimize = tf.compat.v1.train.AdamOptimizer(self.lr).\

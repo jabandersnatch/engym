@@ -13,3 +13,6 @@ def plotLearning(scores, filename, x=None, window=10):
     plt.plot(x, running_avg)
     plt.savefig(filename)
     plt.show()
+    # close after 3 seconds
+    plt.pause(3)
+    plt.close()

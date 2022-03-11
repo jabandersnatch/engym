@@ -7,7 +7,7 @@ import time
 # Create the environment
 
 class Bar_Builder():
-    def __init__(self, max_dist_y, n_episode):
+    def __init__(self, max_dist_y, n_episode, n_run):
         pg.init()
         self.screen_width = 600
         self.screen_height = 800
@@ -19,6 +19,7 @@ class Bar_Builder():
         self.SCALE = self.screen_height*0.9/max_dist_y
         self.goal_dist = max_dist_y
         self.n_episode = n_episode
+        self.n_run = n_run
 
     def display_bar(self, position, radius, height):
         # Display the bar
@@ -64,5 +65,5 @@ class Bar_Builder():
         self.goal_force_vector(self.goal_dist)
         self.display_total_mass(np.round(list_render[-1][1],5))
         self.display_total_deformation(np.round(list_render[-1][2],5))
-        pg.image.save(self.screen, './out/renders/'+'render'+str(self.n_episode)+'.png')
+        pg.image.save(self.screen, './out/renders/'+self.n_run+'_'+'render'+str(self.n_episode)+'.png')
         self.close()

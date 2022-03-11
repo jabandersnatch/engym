@@ -6,20 +6,21 @@ from ..Buffer.buffer import Buffer
 
 class Agent(object):
 
-    def __init__(self, alpha, beta, up_bound, low_bound, input_dims, tau, env, gamma = 0.99, 
+    def __init__(self, alpha, name, beta, up_bound, low_bound, input_dims, tau, env, gamma = 0.99, 
         n_actions=2, buffer_capacity = 1000000, layer1_size = 400, layer2_size = 300,
         batch_size=64):
         self.gamma = gamma
         self.tau = tau
-        self.memory = Buffer(buffer_capacity = buffer_capacity, n_states = input_dims, n_actions = n_actions)
+        self.name = name
+        self.memory = Buffer(buffer_capacity = buffer_capacity, batch_size=batch_size, n_states = input_dims, n_actions = n_actions)
         self.batch_size = batch_size
         self.sess = tf.compat.v1.Session()
-        self.actor = ActorNetwork(alpha, n_actions, 'Actor', input_dims, self.sess,
-                            layer1_size, layer2_size, env.action_space.high)
+        self.actor = ActorNetwork(lr = alpha, n_actions = n_actions, name = name, input_dims = input_dims, sess = self.sess,
+                            fc1_dims = layer1_size, fc2_dims = layer2_size, action_bound = up_bound)
         self.critic = CriticNetwork(beta, n_actions, 'Critic', input_dims,self.sess,
                                 layer1_size, layer2_size, action_bound=up_bound)
 
-        self.target_actor = ActorNetwork(alpha, n_actions, 'TargetActor',
+        self.target_actor = ActorNetwork(alpha, n_actions, 'Target'+name,
                                     input_dims, self.sess, layer1_size,
                                     layer2_size, env.action_space.high)
         self.target_critic = CriticNetwork(beta, n_actions, 'TargetCritic', input_dims,
