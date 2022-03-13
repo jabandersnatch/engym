@@ -63,9 +63,8 @@ class StackedBarsEnv(Env):
         self.state = None
         # self set the distance limit
         self.dist_lim = dist_lim
-        self.OBSERVATION_SPACE_VALUES = (4, 1)
-
-        self.ACTION_SIZE = 2
+        # Set the min mass
+        self.min_mass = r_min ** 2 * np.pi * min_h * goal_dist * rho
 
         # create a empty numpy array 1x3 to store the position, mass, total deformation and deformation of the bar
         self.list_render = np.array([0, 0, 0, 0, 0, 0], dtype=np.float64)
@@ -81,8 +80,9 @@ class StackedBarsEnv(Env):
         h_bar = action[1]
         position, t_mass, total_def, d_def = self.state
 
+        current_mass = r_bar ** 2 * np.pi * h_bar * self.rho
         # Calculate mass of the bar
-        t_mass = t_mass + r_bar ** 2 * np.pi * h_bar * self.rho
+        t_mass = t_mass + current_mass
         # calculate the weight of the bar
         t_w_bar = t_mass * self.g
 
@@ -116,20 +116,19 @@ class StackedBarsEnv(Env):
 
         # create a atan function that goes from 0 to 1 with the distance 
 
-        reward = 0 
+        reward = (1 / current_mass) /( 1 / self.min_mass) * self.min_h
         # Check if the bar has reached the goal
         done = False
 
 
         if position >= self.goal_dist:
             done = True
+            reward += 1
  
         elif n_stress > self.s_y:
             reward -= 1
             done = True
-        else:
-            reward += self.min_h
-    
+            
         # Store the state
         state_action_holder= np.concatenate((self.state, action), axis=None)
 

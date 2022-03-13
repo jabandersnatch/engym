@@ -17,13 +17,13 @@ class Agent(object):
         self.sess = tf.compat.v1.Session()
         self.actor = ActorNetwork(lr = alpha, n_actions = n_actions, name = name, input_dims = input_dims, sess = self.sess,
                             fc1_dims = layer1_size, fc2_dims = layer2_size, action_bound = up_bound)
-        self.critic = CriticNetwork(beta, n_actions, 'Critic', input_dims,self.sess,
+        self.critic = CriticNetwork(beta, n_actions, 'Critic' + name, input_dims,self.sess,
                                 layer1_size, layer2_size, action_bound=up_bound)
 
-        self.target_actor = ActorNetwork(alpha, n_actions, 'Target'+name,
+        self.target_actor = ActorNetwork(alpha, n_actions, 'Target' + name,
                                     input_dims, self.sess, layer1_size,
                                     layer2_size, env.action_space.high)
-        self.target_critic = CriticNetwork(beta, n_actions, 'TargetCritic', input_dims,
+        self.target_critic = CriticNetwork(beta, n_actions, 'TargetCritic' + name, input_dims,
                                     self.sess, layer1_size, layer2_size)
 
         self.noise = OUActionNoise(mu=np.zeros(n_actions))

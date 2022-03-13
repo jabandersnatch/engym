@@ -1,6 +1,5 @@
 import os
 import numpy as np
-import tensorboard
 import tensorflow as tf
 from keras.layers import Dense, BatchNormalization
 
