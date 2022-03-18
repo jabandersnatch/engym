@@ -3,33 +3,9 @@
         {
             "run": "run_01",
             "n_episodes": 1000,
-            "show_every": 100,
-            "alpha": 0.00005,
-            "beta": 0.00005,
-            "gamma": 0.99,
-            "tau": 0.001,
-            "batch_size": 64,
-            "layer1_size": 800,
-            "layer2_size": 800
-        },
-        {
-            "run": "run_02",
-            "n_episodes": 1000,
-            "show_every": 100,
-            "alpha": 0.00005,
-            "beta": 0.000025,
-            "gamma": 0.99,
-            "tau": 0.001,
-            "batch_size": 64,
-            "layer1_size": 1000,
-            "layer2_size": 1000
-        },
-        {
-            "run": "run_03",
-            "n_episodes": 1000,
-            "show_every": 100,
-            "alpha": 0.00005,
-            "beta": 0.00001,
+            "show_every": 250,
+            "alpha": 0.00001,
+            "beta": 0.000005,
             "gamma": 0.99,
             "tau": 0.001,
             "batch_size": 128,
@@ -37,16 +13,40 @@
             "layer2_size": 800
         },
         {
-            "run": "run_04",
-            "n_episodes": 5000,
+            "run": "run_02",
+            "n_episodes": 1500,
+            "show_every": 250,
+            "alpha": 0.000025,
+            "beta": 0.0000125,
+            "gamma": 0.99,
+            "tau": 0.01,
+            "batch_size": 64,
+            "layer1_size": 1000,
+            "layer2_size": 1000
+        },
+        {
+            "run": "run_03",
+            "n_episodes": 2500,
             "show_every": 250,
             "alpha": 0.00005,
-            "beta": 0.00001,
+            "beta": 0.00007,
             "gamma": 0.999,
             "tau": 0.001,
-            "batch_size": 64,
-            "layer1_size": 800,
-            "layer2_size": 800
+            "batch_size": 128,
+            "layer1_size": 1200,
+            "layer2_size": 1000
+        },
+        {
+            "run": "run_04",
+            "n_episodes": 2500,
+            "show_every": 250,
+            "alpha": 0.000005,
+            "beta": 0.0000025,
+            "gamma": 0.9999,
+            "tau": 0.000001,
+            "batch_size": 128,
+            "layer1_size": 2000,
+            "layer2_size": 2000
         }
     ]
 }

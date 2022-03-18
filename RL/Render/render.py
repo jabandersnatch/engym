@@ -1,8 +1,5 @@
 import pygame as pg
 import numpy as np
-import sys
-import random
-import time
 
 # Create the environment
 

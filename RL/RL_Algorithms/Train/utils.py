@@ -15,5 +15,5 @@ def plotLearning(scores, filename, x=None, window=10):
     ax.grid()
     fig.savefig(filename)
     plt.show(block = False)
-    plt.pause(3)
+    plt.pause(0.001)
     plt.close(fig)

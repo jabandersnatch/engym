@@ -116,18 +116,19 @@ class StackedBarsEnv(Env):
 
         # create a atan function that goes from 0 to 1 with the distance 
 
-        reward = (1 / current_mass) /( 1 / self.min_mass) * self.min_h
         # Check if the bar has reached the goal
-        done = False
+        done = (position >= self.goal_dist)
 
 
-        if position >= self.goal_dist:
-            done = True
-            reward += 1
+        reward = 1/(t_mass*position**2)
+
  
-        elif n_stress > self.s_y:
-            reward -= 1
-            done = True
+        if n_stress > self.s_y:
+            reward -= t_mass*position**2
+            reward -= 100
+        if self.list_render[4] > r_bar:
+            reward += 100
+            
             
         # Store the state
         state_action_holder= np.concatenate((self.state, action), axis=None)
