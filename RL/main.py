@@ -2,7 +2,8 @@
     In this file we are going to initialize the project.
 
 """
-
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from Environment.test.physics_test import Test_Environment
 from RL_Algorithms.Train.train import TrainDDPGAgent
 from RL_Algorithms.Train.auto_train import ddpg_auto_train

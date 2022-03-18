@@ -28,7 +28,6 @@ class TrainDDPGAgent():
                             batch_size=self.batch_size, layer1_size=self.layer1_size, layer2_size=self.layer2_size, 
                             n_actions=self.n_actions)
     
-        np.random.seed(0)
         self.score_history = []
         self.train()
 

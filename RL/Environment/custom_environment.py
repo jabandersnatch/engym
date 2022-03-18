@@ -69,6 +69,8 @@ class StackedBarsEnv(Env):
         # create a empty numpy array 1x3 to store the position, mass, total deformation and deformation of the bar
         self.list_render = np.array([0, 0, 0, 0, 0, 0], dtype=np.float64)
 
+        self.temp_position = 0
+
     def step(self, action):
         """
         This function is called every time the agent takes an action.
@@ -103,8 +105,10 @@ class StackedBarsEnv(Env):
 
         # Calculate the current position of the bar
 
-        position += h_bar
+        position = self.goal_dist - self.temp_position
 
+        self.temp_position += h_bar
+        
         # Calculate the total weight of the bar
         self.total_weight = t_w_bar
 
@@ -117,23 +121,20 @@ class StackedBarsEnv(Env):
         # create a atan function that goes from 0 to 1 with the distance 
 
         # Check if the bar has reached the goal
-        done = (position >= self.goal_dist)
+        done = (position <= 0)
 
 
-        reward = 1/(t_mass*position**2)
+        reward = 1/(t_mass)*(self.goal_dist-position)*10
 
  
         if n_stress > self.s_y:
-            reward -= t_mass*position**2
-            reward -= 100
-        if self.list_render[4] > r_bar:
-            reward += 100
+            reward -= t_mass*position**2*100
+
+        state_action_holder= np.concatenate((self.state, action), axis=None)
+        self.list_render = np.vstack((self.list_render, state_action_holder)) 
             
             
         # Store the state
-        state_action_holder= np.concatenate((self.state, action), axis=None)
-
-        self.list_render = np.vstack((self.list_render, state_action_holder)) 
 
         return self.state, reward, done, {}
     
@@ -143,6 +144,7 @@ class StackedBarsEnv(Env):
         """
         self.state = np.array([0, 0, 0, 0], dtype=np.float64)
         self.total_weight = 0
+        self.temp_position = 0
         self.list_render = np.array([0, 0, 0, 0, 0, 0], dtype=np.float64)
         return self.state
     
