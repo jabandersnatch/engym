@@ -1,195 +1,90 @@
-import os
-import numpy as np
 import tensorflow as tf
-from keras.layers import Dense, BatchNormalization
 
+from tensorflow import keras
+from keras.initializers.initializers_v2 import GlorotNormal
 
-# Set up gpu options
+KERNEL_INITIALIZERS = GlorotNormal()
 
-
-class CriticNetwork(object):
-    def __init__(self, lr, n_actions, name, input_dims, sess, fc1_dims, fc2_dims,
-                 batch_size=64, chkpt_dir='tmp/ddpg', action_bound=1):
-        tf.compat.v1.disable_eager_execution()
-        self.lr = lr
-        self.n_actions = n_actions
-        self.name = name
+class ActorNetwork():
+    def __init__(self, name, num_actions, num_states, action_high, fc1_dims, fc2_dims) -> None:
+        self.name = name 
+        self.num_actions = num_actions
+        self.num_states = num_states
+        self.action_high = action_high
         self.fc1_dims = fc1_dims
         self.fc2_dims = fc2_dims
-        self.chkpt_dir = chkpt_dir
-        self.input_dims = input_dims
-        self.batch_size = batch_size
-        self.sess = sess
-        self.action_bound = action_bound
         self.build_network()
-        self.params = tf.compat.v1.trainable_variables(scope=self.name)
-        self.saver = tf.compat.v1.train.Saver()
-        self.checkpoint_file = os.path.join(chkpt_dir, name +'_ddpg.ckpt')
-        self.optimize = tf.compat.v1.train.AdamOptimizer(self.lr).minimize(self.loss)
 
-        self.action_gradients = tf.gradients(self.q, self.actions)
+    def build_network(self) -> None:
+        '''
+        Get Actor Network with the given parameters.
 
-    def build_network(self):
-        with tf.compat.v1.variable_scope(self.name):
-            self.input = tf.compat.v1.placeholder(tf.float32,
-                                        shape=[None, self.input_dims],
-                                        name='inputs')
+        Args:
+            fc1_dims: number of neurons of the first hidden layer
+            fc2_dims: number of neurons of the second hidden layer
+            num_actions: number of actions in the nn
+            num_states: number of states in the nn
+            action_high: the top value from the action
 
-            self.actions = tf.compat.v1.placeholder(tf.float32,
-                                          shape=[None, self.n_actions],
-                                          name='actions')
+        Returns:
+            the Keras Model
+        '''
+        last_init = tf.random_normal_initializer(stddev=0.0005)
 
-            self.q_target = tf.compat.v1.placeholder(tf.float32,
-                                           shape=[None,1],
-                                           name='targets')
+        inputs = keras.layers.Input(shape=(self.num_states,), dtype=tf.float32)
+        out = keras.layers.Dense(self.fc1_dims, activation=tf.nn.leaky_relu,
+                                 kernel_initializer=KERNEL_INITIALIZERS)(inputs)
+        out = keras.layers.Dense(self.fc2_dims, activation=tf.nn.leaky_relu,
+                                 kernel_initializer=KERNEL_INITIALIZERS)(out)
+        outputs = keras.layers.Dense(self.num_actions, activation='tanh',
+                                     kernel_initializer=last_init)(out) * self.action_high
+        self.model = tf.keras.Model(inputs, outputs)
 
-            f1 = 1. /np.sqrt(self.fc1_dims)
-            # dense1 = tf.compat.v1.layers.dense(self.input, units=self.fc1_dims,
-            #                          kernel_initializer=tf.random_uniform_initializer(-f1, f1),
-            #                          bias_initializer=tf.random_uniform_initializer(-f1, f1))
-            dense1 = Dense(self.fc1_dims, activation='relu', 
-                            kernel_initializer=tf.random_uniform_initializer(-f1, f1), 
-                            bias_initializer=tf.random_uniform_initializer(-f1, f1))(self.input)
-            # batch1 = tf.compat.v1.layers.batch_normalization(dense1)
-            batch1 = BatchNormalization()(dense1)
-            layer1_activation = tf.nn.relu(batch1)
-            
-            f2 = 1. / np.sqrt(self.fc2_dims)
-            
-            # dense2 = tf.compat.v1.layers.dense(layer1_activation, units=self.fc2_dims,
-            #                          kernel_initializer=tf.random_uniform_initializer(-f2, f2),
-            #                          bias_initializer=tf.random_uniform_initializer(-f2, f2))
-            dense2 = Dense(self.fc2_dims, activation='relu',
-                            kernel_initializer=tf.random_uniform_initializer(-f2, f2),
-                            bias_initializer=tf.random_uniform_initializer(-f2, f2))(layer1_activation)
+    def get_model(self):
+        return self.model
 
-            #batch2 = tf.compat.v1.layers.batch_normalization(dense2)
-            batch2 = BatchNormalization()(dense2)
-
-            # action_in = tf.compat.v1.layers.dense(self.actions, units=self.fc2_dims,
-            #                             activation='relu')
-            action_in = Dense(self.fc2_dims, activation='relu')(self.actions)
-
-
-            state_actions = tf.add(batch2, action_in)
-            state_actions = tf.nn.relu(state_actions)
-
-            f3 = 0.004
-            # self.q = tf.compat.v1.layers.dense(state_actions, units=1,
-            #                    kernel_initializer=tf.random_uniform_initializer(-f3, f3),
-            #                    bias_initializer=tf.random_uniform_initializer(-f3, f3))
-            self.q = Dense(1, activation='linear',
-                            kernel_initializer=tf.random_uniform_initializer(-f3, f3),
-                            bias_initializer=tf.random_uniform_initializer(-f3, f3))(state_actions)
-
-            self.loss = tf.compat.v1.losses.mean_squared_error(self.q_target, self.q)
-
-    def predict(self, inputs, actions):
-        return self.sess.run(self.q,
-                             feed_dict={self.input: inputs,
-                                        self.actions: actions})
-
-    def train(self, inputs, actions, q_target):
-        return self.sess.run(self.optimize,
-                      feed_dict={self.input: inputs,
-                                 self.actions: actions,
-                                 self.q_target: q_target})
-
-    def get_action_gradients(self, inputs, actions):
-        return self.sess.run(self.action_gradients,
-                             feed_dict={self.input: inputs,
-                                        self.actions: actions})
-    def load_checkpoint(self):
-        print("...Loading checkpoint...")
-        self.saver.restore(self.sess, self.checkpoint_file)
-
-    def save_checkpoint(self):
-        print("...Saving checkpoint...")
-        self.saver.save(self.sess, self.checkpoint_file)
-
-class ActorNetwork(object):
-    def __init__(self, lr, n_actions, name, input_dims, sess, fc1_dims,
-                 fc2_dims, action_bound, batch_size=64, chkpt_dir='tmp/ddpg'):
-        tf.compat.v1.disable_eager_execution()
-        self.lr = lr
-        self.n_actions = n_actions
+class CriticNetwork():
+    def __init__(self, name, num_actions, num_states, action_high, fc1_dims, fc2_dims, fc3_dims) -> None:
         self.name = name
+        self.num_actions = num_actions
+        self.num_states = num_states
+        self.action_high = action_high
         self.fc1_dims = fc1_dims
         self.fc2_dims = fc2_dims
-        self.chkpt_dir = chkpt_dir
-        self.input_dims = input_dims
-        self.batch_size = batch_size
-        self.sess = sess
-        self.action_bound = action_bound
-        self.build_network()
-        self.params = tf.compat.v1.trainable_variables(scope=self.name)
-        self.saver = tf.compat.v1.train.Saver()
-        self.checkpoint_file = os.path.join(chkpt_dir,'ddpg.ckpt')
+        self.fc3_dims = fc3_dims
 
-        self.unnormalized_actor_gradients = tf.gradients(
-            self.mu, self.params, -self.action_gradient)
+    def build_network(self) -> None:
+        '''
+        Get the CriticNetwork with the given parameters
 
-        self.actor_gradients = list(map(lambda x: tf.math.divide(x, self.batch_size),
-                                        self.unnormalized_actor_gradients))
+        Args:
+            num_actions: number of actions in the nn
+            num_states: number of states in the nn
+            action_high: the top value from the action
+        '''
+        last_init = tf.random_normal_initializer(stddev=0.0005)
 
-        self.optimize = tf.compat.v1.train.AdamOptimizer(self.lr).\
-                    apply_gradients(zip(self.actor_gradients, self.params))
+        state_input = keras.layers.Input(shape=(self.num_states), dtype=tf.float32)
+        state_out = keras.layers.Dense(self.fc1_dims, activation=tf.nn.leaky_relu,
+                                       kernel_initializer=KERNEL_INITIALIZERS)(state_input)
+        state_out = keras.layers.BatchNormalization()(state_out)
+        state_out = keras.layers.Dense(self.fc2_dims, activation=tf.nn.leaky_relu,
+                                       kernel_initializer=KERNEL_INITIALIZERS)(state_out)
 
-    def build_network(self):
-        with tf.compat.v1.variable_scope(self.name):
-            self.input = tf.compat.v1.placeholder(tf.float32,
-                                        shape=[None, self.input_dims],
-                                        name='inputs')
+        action_input = keras.layers.Input(shape=(self.num_actions), dtype=tf.float32)
+        action_out = keras.layers.Dense(self.fc2_dims, activation=tf.nn.leaky_relu,
+                                        kernel_initializer=KERNEL_INITIALIZERS)(action_input/self.action_high)
+        
+        added = keras.layers.Add()([state_out, action_out])
 
-            self.action_gradient = tf.compat.v1.placeholder(tf.float32,
-                                          shape=[None, self.n_actions],
-                                          name='gradients')
+        added = keras.BatchNormalization()(added)
 
-            f1 = 1. / np.sqrt(self.fc1_dims)
-            # dense1 = tf.compat.v1.layers.dense(self.input, units=self.fc1_dims,
-            #                          kernel_initializer=tf.random_uniform_initializer(-f1, f1),
-            #                          bias_initializer=tf.random_uniform_initializer(-f1, f1))
-            dense1 = Dense(self.fc1_dims, activation='relu',
-                            kernel_initializer=tf.random_uniform_initializer(-f1, f1),
-                            bias_initializer=tf.random_uniform_initializer(-f1, f1))(self.input)
-            
-            # batch1 = tf.compat.v1.layers.batch_normalization(dense1)
-            
-            batch1= BatchNormalization()(dense1)
+        outs = keras.layers.Dense(self.fc3_dims, activation=tf.nn.leaky_relu,
+                                     kernel_initializer=KERNEL_INITIALIZERS)(added)
+        outs = keras.layers.BatchNormalization()(outs)
+        outputs = keras.layers.Dense(1, kernel_initializer=last_init)(outs)
 
-            layer1_activation = tf.nn.relu(batch1)
+        self.model = tf.keras.Model([state_input, action_input], outputs)
 
-            f2 = 1. / np.sqrt(self.fc2_dims)
-            
-            # dense2 = tf.compat.v1.layers.dense(layer1_activation, units=self.fc2_dims,
-            #                         kernel_initializer=tf.random_uniform_initializer(-f2, f2),
-            #                         bias_initializer=tf.random_uniform_initializer(-f2, f2))
-            dense2 = Dense(self.fc2_dims, activation='relu',
-                            kernel_initializer=tf.random_uniform_initializer(-f2, f2),
-                            bias_initializer=tf.random_uniform_initializer(-f2, f2))(layer1_activation)
-
-            #batch2 = tf.compat.v1.layers.batch_normalization(dense2)
-            
-            batch2= BatchNormalization()(dense2)
-
-            layer2_activation = tf.nn.relu(batch2)
-
-            f3 = 0.004
-            # mu = tf.compat.v1.layers.dense(layer2_activation, units=self.n_actions,
-            #                 activation='tanh',
-            #                 kernel_initializer= tf.random_uniform_initializer(-f3, f3),
-            #                 bias_initializer=tf.random_uniform_initializer(-f3, f3))
-            mu = Dense(self.n_actions, activation='tanh',
-                            kernel_initializer= tf.random_uniform_initializer(-f3, f3),
-                            bias_initializer=tf.random_uniform_initializer(-f3, f3))(layer2_activation)
-                            
-            self.mu = tf.multiply(mu, self.action_bound)
-
-    def predict(self, inputs):
-        return self.sess.run(self.mu, feed_dict={self.input: inputs})
-
-    def train(self, inputs, gradients):
-        self.sess.run(self.optimize,
-                      feed_dict={self.input: inputs,
-                                 self.action_gradient: gradients})
-
+    def get_model(self):
+        return self.model

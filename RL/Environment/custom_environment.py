@@ -15,7 +15,7 @@ class StackedBarsEnv(Env):
     This is a custom environment for stacking bars on top of each other.
     The agent will be able to decide the dimensions of the stacked bars.
     """
-    def __init__(self, goal_dist=1, down_force=113100, E=200e9, s_y=250e6, rho=7800, g=9.81, r_min=10e-3, r_max=100e-3, min_h=0.01, max_h=0.1, dist_lim= 0.05):
+    def __init__(self, goal_dist:int =1, down_force: int=113100, E: float=200e9, s_y: float=250e6, rho: int=7800, g: float=9.81, r_min: float=10e-3, r_max: float=100e-3, min_h: float=0.01, max_h: float=0.1, dist_lim: float= 0.05) -> None:
         """
 
         ## Parameters
@@ -59,8 +59,6 @@ class StackedBarsEnv(Env):
         self.min_h = min_h
         # Set max height
         self.max_h = max_h
-        # Set the state
-        self.state = None
         # self set the distance limit
         self.dist_lim = dist_lim
         # Set the min mass
@@ -71,13 +69,16 @@ class StackedBarsEnv(Env):
 
         self.temp_position = 0
 
-    def step(self, action):
+    def step(self, action: np.ndarray) -> tuple:
         """
         This function is called every time the agent takes an action.
         The action the creation of a bar.
+        ##Parameters
+            self 
+            action = np.array()
         """
-        error_msg = f"{action!r} was not a valid action. Actions must be a numpy array of shape (2,)"
-        assert action.shape == (2,), error_msg        
+        error_msg = f"{action!r} was not a valid action. Actions must be a numpy array of shape (2,)."
+        print(error_msg)
         r_bar = action[0]
         h_bar = action[1]
         position, t_mass, total_def, d_def = self.state
@@ -138,7 +139,7 @@ class StackedBarsEnv(Env):
 
         return self.state, reward, done, {}
     
-    def reset(self):
+    def reset(self) -> np.ndarray:
         """
         This function is called every time the environment is reset.
         """

@@ -1,48 +1,67 @@
+"""
+Buffer system for the RL
+"""
+
 import numpy as np
-import tensorflow as tf
 
-class Buffer:
-    def __init__(self, buffer_capacity=50000, batch_size=64, n_states=None, n_actions=None):
-        self.buffer_capacity = buffer_capacity
+import random
+from collections import deque
+
+BUFFER_UNBALANCE_GAP = 0.5
+
+class ReplayBuffer:
+    """
+    Replay Buffer to store the experiences.
+    """
+
+    def __init__(self, buffer_size, batch_size):
+        """
+        Initialize the attributes.
+        Args:
+            buffer_size: The size of the buffer memory
+            batch_size: The batch for each of the data request `get_batch`
+        """
+        self.buffer = deque(maxlen=int(buffer_size))  # with format of (s,a,r,s')
+
+        # constant sizes to use
         self.batch_size = batch_size
-        if n_states is None:
-            # Throws error if n_states is not specified
-            raise ValueError("n_states must be specified")
-        self.n_states = n_states
-        if n_actions is None:
-            # Throws error if n_actions is not specified
-            raise ValueError("n_actions must be specified")
-        self.n_actions = n_actions
 
-        self.state_buffer = np.zeros((self.buffer_capacity, self.n_states))
-        self.action_buffer = np.zeros((self.buffer_capacity, self.n_actions))
-        self.reward_buffer = np.zeros(self.buffer_capacity)
-        self.next_state_buffer = np.zeros((self.buffer_capacity, self.n_states))
-        self.terminal_buffer = np.zeros(self.buffer_capacity, dtype=np.float64)
-        self.mem_cntr = 0
-    def record(self, obs_tuple):
-        
-        index = self.mem_cntr % self.buffer_capacity
+        # temp variables
+        self.p_indices = [BUFFER_UNBALANCE_GAP/2]
 
-        state, action, reward, obs_tp1, done = obs_tuple
+    def append(self, state, action, r, sn, d):
+        """
+        Append to the Buffer
+        Args:
+            state: the state
+            action: the action
+            r: the reward
+            sn: the next state
+            d: done (whether one loop is done or not)
+        """
+        self.buffer.append([state, action, np.expand_dims(r, -1), sn, np.expand_dims(d, -1)])
 
-        self.state_buffer[index] = state
-        self.action_buffer[index] = action[0]
-        self.reward_buffer[index] = reward
-        self.next_state_buffer[index] = obs_tp1
-        self.terminal_buffer[index] = 1 - done
-        self.mem_cntr += 1
+    def get_batch(self, unbalance_p=True):
+        """
+        Get the batch randomly from the buffer
+        Args:
+            unbalance_p: If true, unbalance probability of taking the batch from buffer with
+            recent event being more prioritized
+        Returns:
+            the resulting batch
+        """
+        # unbalance indices
+        p_indices = None
+        if random.random() < unbalance_p:
+            self.p_indices.extend((np.arange(len(self.buffer)-len(self.p_indices))+1)
+                                  * BUFFER_UNBALANCE_GAP + self.p_indices[-1])
+            p_indices = self.p_indices / np.sum(self.p_indices)
 
-    def sample_buffer(self):
-        max_mem = min(self.mem_cntr, self.buffer_capacity)
+        chosen_indices = np.random.choice(len(self.buffer),
+                                          size=min(self.batch_size, len(self.buffer)),
+                                          replace=False,
+                                          p=p_indices)
 
-        batch = np.random.choice(max_mem, self.batch_size)
+        buffer = [self.buffer[chosen_index] for chosen_index in chosen_indices]
 
-        states = self.state_buffer[batch]
-        actions = self.action_buffer[batch]
-        rewards = self.reward_buffer[batch]
-        next_states = self.next_state_buffer[batch]
-        terminal = self.terminal_buffer[batch]
-
-        return states, actions, rewards, next_states, terminal
-        
+        return buffer
