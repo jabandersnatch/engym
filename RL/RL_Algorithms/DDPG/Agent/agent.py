@@ -16,7 +16,7 @@ def update_target(model_target, model_ref, rho=0):
         model_ref: the reference model
         rho: the ratio of the new and old weights
     '''
-    model_target.set_weigths([rho * ref_weight + (1 - rho) * target_weight
+    model_target.set_weights([rho * ref_weight + (1 - rho) * target_weight
                              for (target_weight, ref_weight) in
                              list(zip(model_target.get_weights(), model_ref.get_weights()))])
 
@@ -29,15 +29,15 @@ class Agent:
     fc3_dims = 150, action_low = None, gamma=0.99, rho=0.001, std_dev=0.2, buffer_size = 1000000, 
     batch_size=64, lr_critic=0.001, lr_actor=0.001):
         # initialize everything
-        self.actor_network = ActorNetwork(name = name, num_states = num_states, num_actions = num_actions, action_high=action_high, fc1_dims=fc1_dims, fc2_dims=fc2_dims)
-        self.critic_network = CriticNetwork(name = 'Critic'+name, num_states = num_states, num_actions = num_actions, action_high=action_high, fc1_dims=fc1_dims, fc2_dims=fc2_dims, fc3_dims=fc3_dims)
-        self.actor_target = ActorNetwork(name = 'Actor target'+name, num_states = num_states, num_actions = num_actions, action_high=action_high, fc1_dims=fc1_dims, fc2_dims=fc2_dims)
-        self.critic_target = CriticNetwork(name = 'Critic target'+name, num_states = num_states, num_actions = num_actions, action_high=action_high, fc1_dims=fc1_dims, fc2_dims=fc2_dims, fc3_dims=fc3_dims)
+        self.actor_network = ActorNetwork(name = name, num_states = num_states, num_actions = num_actions, action_high=action_high, fc1_dims=fc1_dims, fc2_dims=fc2_dims).get_model()
+        self.critic_network = CriticNetwork(name = 'Critic'+name, num_states = num_states, num_actions = num_actions, action_high=action_high, fc1_dims=fc1_dims, fc2_dims=fc2_dims, fc3_dims=fc3_dims).get_model()
+        self.actor_target = ActorNetwork(name = 'Actor target'+name, num_states = num_states, num_actions = num_actions, action_high=action_high, fc1_dims=fc1_dims, fc2_dims=fc2_dims).get_model()
+        self.critic_target = CriticNetwork(name = 'Critic target'+name, num_states = num_states, num_actions = num_actions, action_high=action_high, fc1_dims=fc1_dims, fc2_dims=fc2_dims, fc3_dims=fc3_dims).get_model()
     
         # Making the weights equal initially
 
-        self.actor_target.set_weigths(self.actor_network.get_weights())
-        self.critic_target.set_weigths(self.critic_network.get_weights())
+        self.actor_target.set_weights(self.actor_network.get_weights())
+        self.critic_target.set_weights(self.critic_network.get_weights())
 
         self.buffer = ReplayBuffer(buffer_size=buffer_size, batch_size=batch_size)
         self.gamma = tf.constant(gamma)
@@ -46,9 +46,9 @@ class Agent:
         self.action_low = action_low
         self.num_states = num_states
         self.num_actions = num_actions
-        self.noise = OUActionNoise(mean=np.zeros(1), std_dev=float(std_dev) * np.ones(1))
+        self.noise = OUActionNoise(mean=np.zeros(1), std_deviation=float(std_dev) * np.ones(1))
         self.critic_optimizer = tf.keras.optimizers.Adam(lr_critic, amsgrad=True)
-        self.actor_optimizer = tf.keras.optimizers.Adaman(lr_actor, amsgrad=True)
+        self.actor_optimizer = tf.keras.optimizers.Adam(lr_actor, amsgrad=True)
         
         self.cur_action = None
 
@@ -62,7 +62,7 @@ class Agent:
                 tf.TensorSpec(shape=[None, 1], dtype=tf.float32),
             ]
         )
-        def update_weights(states, actions, rewards, next_states, dones):
+        def update_weights(states, actions, rewards, next_states, dones) -> tuple:
             '''
             Function to update weights with optimimzer
             '''
@@ -94,17 +94,17 @@ class Agent:
         '''
         self.cur_action = (self.actor_network(state)[0].numpy()
                            if _notrandom 
-                           else (np.ramdom.uniform(self.action_low, self.action_high, self.num_actions)) + (self.noise() if noise else 0)
+                           else (np.random.uniform(self.action_low, self.action_high, self.num_actions)) + (self.noise() if noise else 0)
                            )
         self.cur_action = np.clip(self.cur_action, self.action_low, self.action_high)
 
         return self.cur_action
 
-    def remember(self, prev_state, action, reward, state, done):
+    def remember(self, prev_state, reward, state, done):
         '''
             Remember the previous state, action, reward, next state, done
         '''
-        self.buffer.add(prev_state, action, reward, state, done)
+        self.buffer.append(prev_state, self.cur_action, reward, state, done)
     
     def learn(self, entry):
         '''

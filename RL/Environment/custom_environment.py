@@ -78,7 +78,6 @@ class StackedBarsEnv(Env):
             action = np.array()
         """
         error_msg = f"{action!r} was not a valid action. Actions must be a numpy array of shape (2,)."
-        print(error_msg)
         r_bar = action[0]
         h_bar = action[1]
         position, t_mass, total_def, d_def = self.state

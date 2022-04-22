@@ -52,6 +52,7 @@ class CriticNetwork():
         self.fc1_dims = fc1_dims
         self.fc2_dims = fc2_dims
         self.fc3_dims = fc3_dims
+        self.build_network()
 
     def build_network(self) -> None:
         '''
@@ -77,7 +78,8 @@ class CriticNetwork():
         
         added = keras.layers.Add()([state_out, action_out])
 
-        added = keras.BatchNormalization()(added)
+        # make aded layers batchnorm
+        added = keras.layers.BatchNormalization()(added)
 
         outs = keras.layers.Dense(self.fc3_dims, activation=tf.nn.leaky_relu,
                                      kernel_initializer=KERNEL_INITIALIZERS)(added)
