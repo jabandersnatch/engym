@@ -7,14 +7,13 @@ import numpy as np
 import random
 from collections import deque
 
-BUFFER_UNBALANCE_GAP = 0.5
 
 class ReplayBuffer:
     """
     Replay Buffer to store the experiences.
     """
 
-    def __init__(self, buffer_size, batch_size):
+    def __init__(self, buffer_size, batch_size, buffer_unbalance_gap = 0.5):
         """
         Initialize the attributes.
         Args:
@@ -27,7 +26,9 @@ class ReplayBuffer:
         self.batch_size = batch_size
 
         # temp variables
-        self.p_indices = [BUFFER_UNBALANCE_GAP/2]
+        self.p_indices = [buffer_unbalance_gap/2]
+
+        self.buffer_unbalance_gap = buffer_unbalance_gap
 
     def append(self, state, action, r, sn, d):
         """
@@ -54,7 +55,7 @@ class ReplayBuffer:
         p_indices = None
         if random.random() < unbalance_p:
             self.p_indices.extend((np.arange(len(self.buffer)-len(self.p_indices))+1)
-                                  * BUFFER_UNBALANCE_GAP + self.p_indices[-1])
+                                  * self.buffer_unbalance_gap + self.p_indices[-1])
             p_indices = self.p_indices / np.sum(self.p_indices)
 
         chosen_indices = np.random.choice(len(self.buffer),

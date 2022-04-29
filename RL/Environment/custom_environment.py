@@ -7,7 +7,7 @@ import numpy as np
 from gym import Env
 from gym.spaces import Box
 
-from RL.Render.render import Bar_Builder
+from Render.render import Bar_Builder
 
 
 class StackedBarsEnv(Env):
@@ -15,7 +15,8 @@ class StackedBarsEnv(Env):
     This is a custom environment for stacking bars on top of each other.
     The agent will be able to decide the dimensions of the stacked bars.
     """
-    def __init__(self, goal_dist:int =1, down_force: int=113100, E: float=200e9, s_y: float=250e6, rho: int=7800, g: float=9.81, r_min: float=10e-3, r_max: float=100e-3, min_h: float=0.01, max_h: float=0.1, dist_lim: float= 0.05) -> None:
+    def __init__(self, goal_dist:int =1000, down_force: int=200000, E: float=200e9, s_y: float=250e6, 
+                 rho: int=7800, g: float=9.81, res: int = 100) -> None:
         """
 
         ## Parameters
@@ -31,11 +32,29 @@ class StackedBarsEnv(Env):
 
         # Set the action space
 
-        self.action_space = Box(low=np.array([r_min, min_h*goal_dist]), high=np.array([r_max, max_h*goal_dist]), dtype=np.float64)
+        r_min = np.sqrt(down_force/(np.pi*s_y))
+
+        r_max = np.sqrt(down_force/(np.pi*(s_y-rho*goal_dist*g)))
+
+        self.action_space = Box(low=np.array([r_min]), high=np.array([r_max]), dtype=np.float64)
+
+        # Calculate the height for the bar segment
+        self.h = goal_dist/res
+        # Calculate the min mass
+        self.min_mass = r_min ** 2 * np.pi * goal_dist * rho
+        # Calculate the min deformation
+        self.min_def = ((down_force+r_min**2*np.pi*goal_dist*rho*g)/(r_min**2 * np.pi))/E * goal_dist
+
+        # Calculate the max mass
+        self.max_mass = r_max ** 2 * np.pi * goal_dist * rho
+        # Calculate the max deformation
+        self.max_def = ((down_force+r_max**2*np.pi*goal_dist*rho*g)/(r_max**2 * np.pi))/E * goal_dist
 
         # Set the observation space
 
-        self.observation_space = Box(low=np.array([0, 0, 0, 0]), high=np.array([np.inf, np.inf, np.inf, np.inf]), dtype=np.float64)
+        self.observation_space = Box(
+            low=np.array([self.min_mass, self.min_def, 0]), 
+            high=np.array([self.max_mass, self.max_def, goal_dist]), dtype=np.float64)
 
         # Set the goal distance 
         self.goal_dist = goal_dist
@@ -49,25 +68,15 @@ class StackedBarsEnv(Env):
         self.rho = rho
         # Set the gravity
         self.g = g
-        # Set the state
-        self.total_weight = 0
         # Set min radius
         self.r_min = r_min
         # Set max radius
         self.r_max = r_max
-        # Set min height
-        self.min_h = min_h
-        # Set max height
-        self.max_h = max_h
-        # self set the distance limit
-        self.dist_lim = dist_lim
-        # Set the min mass
-        self.min_mass = r_min ** 2 * np.pi * min_h * goal_dist * rho
-
         # create a empty numpy array 1x3 to store the position, mass, total deformation and deformation of the bar
-        self.list_render = np.array([0, 0, 0, 0, 0, 0], dtype=np.float64)
+        self.list_render = np.array([0, 0, goal_dist, 0, 0], dtype=np.float64)
 
-        self.temp_position = 0
+        print('The minimun radius is: {}'.format(self.r_min))
+        print('The maximun radius is: {}'.format(self.r_max))
 
     def step(self, action: np.ndarray) -> tuple:
         """
@@ -79,58 +88,40 @@ class StackedBarsEnv(Env):
         """
         error_msg = f"{action!r} was not a valid action. Actions must be a numpy array of shape (2,)."
         r_bar = action[0]
-        h_bar = action[1]
-        position, t_mass, total_def, d_def = self.state
+        t_mass, total_def, position = self.state
 
-        current_mass = r_bar ** 2 * np.pi * h_bar * self.rho
+        current_mass = r_bar ** 2 * np.pi * self.h * self.rho
         # Calculate mass of the bar
-        t_mass = t_mass + current_mass
+        t_mass += current_mass
         # calculate the weight of the bar
         t_w_bar = t_mass * self.g
 
-        t_force = self.down_force + self.total_weight
+        t_force = self.down_force + t_w_bar
 
         # Calculate the normal stress of the section
 
-        n_stress = (t_force) / (r_bar**2 * np.pi)
+        n_stress = (t_force) / (r_bar ** 2 * np.pi)
 
         # Calculate the deformation of the section
 
-        d_def = n_stress / self.E * h_bar
+        d_def = n_stress / self.E * self.h
         
         # Calculate the total deformation of the bar
 
         total_def += d_def
 
-
-        # Calculate the current position of the bar
-
-        position = self.goal_dist - self.temp_position
-
-        self.temp_position += h_bar
-        
-        # Calculate the total weight of the bar
-        self.total_weight = t_w_bar
+        position -= self.h
 
         # Save the current state in the array
 
-        self.state = np.array([position, t_mass, total_def, d_def], dtype=np.float64)
-
-        # Calculate the reward
-
-        # create a atan function that goes from 0 to 1 with the distance 
-
+        self.state = np.array([t_mass, total_def, position], dtype=np.float64)
         # Check if the bar has reached the goal
-        done = (position <= 0)
+        done = (position == 0)
+
+        reward = 1/np.abs(n_stress-self.s_y+0.000001) * position/self.goal_dist
 
 
-        reward = 1/(t_mass)*(self.goal_dist-position)*10
-
- 
-        if n_stress > self.s_y:
-            reward -= t_mass*position**2*100
-
-        state_action_holder= np.concatenate((self.state, action), axis=None)
+        state_action_holder= np.concatenate((self.state, action, self.h), axis=None)
         self.list_render = np.vstack((self.list_render, state_action_holder)) 
             
             
@@ -142,10 +133,10 @@ class StackedBarsEnv(Env):
         """
         This function is called every time the environment is reset.
         """
-        self.state = np.array([0, 0, 0, 0], dtype=np.float64)
+        self.state = np.array([0, 0, self.goal_dist], dtype=np.float64)
         self.total_weight = 0
-        self.temp_position = 0
-        self.list_render = np.array([0, 0, 0, 0, 0, 0], dtype=np.float64)
+        self.list_render = np.array([0, 0, self.goal_dist, 0, 0], dtype=np.float64)
+
         return self.state
     
     def render(self, mode='human', n_episode=None, n_run=None):
@@ -154,5 +145,5 @@ class StackedBarsEnv(Env):
         """
         if mode == 'human':
             
-            bar_builder = Bar_Builder(max_dist_y=self.goal_dist, n_episode=n_episode, n_run=n_run)
+            bar_builder = Bar_Builder(max_dist_y=self.goal_dist, max_dist_x=self.r_max, n_episode=n_episode, n_run=n_run)
             bar_builder.run_render(self.list_render)
