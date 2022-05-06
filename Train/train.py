@@ -2,6 +2,7 @@ import logging
 import random
 import tensorflow as tf
 import numpy as np
+import gym
 
 from tqdm import trange
 from RL_Algorithms.DDPG.Agent.agent import Agent
@@ -10,11 +11,11 @@ from .utils import plotLearning
 
 CHKPT_PATH = './checkpoints/DDPG'
 class TrainDDPGAgent():
-    def __init__(self, name = 'def_run_h', n_episodes=1000, show_every=250,  lr_critic = 5e-3, 
-                 lr_actor = 5e-4, rho=0.001, batch_size = 64, buffer_size=1e6, 
-                 fc1_dims = 600, fc2_dims = 300, fc3_dims = 150, gamma = 0.99, warm_up=1, 
-                 eps_greedy = 0.95, use_noise = True, learn = True, unbalance_p = 0.8, 
-                 save_weights = True, load_weights = False, buffer_unbalance_gap = 0.5):
+    def __init__(self, name = 'def_run_h', n_episodes=100, show_every=100,  lr_critic = 0.002, 
+                 lr_actor = 0.001, rho=0.005, batch_size = 64, buffer_size=50000, 
+                 fc1_dims = 256, fc2_dims = 128, fc3_dims = 64, gamma = 0.99, warm_up=1, 
+                 eps_greedy = 1, use_noise = True, learn = True, unbalance_p = 0.8, 
+                 save_weights = True, load_weights = True, buffer_unbalance_gap = 0.5):
         
         self.name = name
         self.n_episodes = n_episodes
@@ -35,7 +36,7 @@ class TrainDDPGAgent():
         self.fc2_dims = fc2_dims
         self.fc3_dims = fc3_dims
         
-        self.env = StackedBarsEnv(res=20)
+        self.env = gym.make('Pendulum-v1')
 
         self.num_states = self.env.observation_space.shape[0]
         self.n_actions = self.env.action_space.shape[0]
@@ -78,7 +79,8 @@ class TrainDDPGAgent():
                 self.A_loss.reset_states()
                 self.agent.noise.reset()
 
-                for _ in range(2000):
+                while True:
+                    self.env.render()
                     cur_act = self.agent.act(tf.expand_dims(prev_state, 0), _notrandom=(ep >= self.warm_up) and
                                         (random.random() < self.eps_greedy+(1-self.eps_greedy)*ep/self.n_episodes),
                                         noise = self.use_noise)
@@ -106,7 +108,7 @@ class TrainDDPGAgent():
                 t.set_postfix(r=self.avg_reward)
                 
                 if ep % self.show_every == 0:
-                    self.env.render(n_run = self.name, n_episode = ep)
+                    #self.env.render(n_run = self.name, n_episode = ep)
                     if self.save_weights:
                         self.agent.save_weights(weight_path)
 

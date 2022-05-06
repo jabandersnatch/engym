@@ -40,7 +40,7 @@ class ReplayBuffer:
             sn: the next state
             d: done (whether one loop is done or not)
         """
-        self.buffer.append([state, action, np.expand_dims(r, -1), sn, np.expand_dims(d, -1)])
+        self.buffer.append([state , action, np.expand_dims(r, -1), sn, np.expand_dims(d, -1)])
 
     def get_batch(self, unbalance_p=True):
         """
@@ -51,7 +51,6 @@ class ReplayBuffer:
         Returns:
             the resulting batch
         """
-        # unbalance indices
         p_indices = None
         if random.random() < unbalance_p:
             self.p_indices.extend((np.arange(len(self.buffer)-len(self.p_indices))+1)

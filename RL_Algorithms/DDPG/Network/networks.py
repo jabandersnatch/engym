@@ -29,7 +29,7 @@ class ActorNetwork():
         Returns:
             the Keras Model
         '''
-        last_init = tf.random_normal_initializer(stddev=0.0005)
+        last_init = tf.random_uniform_initializer(minval=-0.003, maxval=0.003)
 
         inputs = keras.layers.Input(shape=(self.num_states,), dtype=tf.float32)
         out = keras.layers.Dense(self.fc1_dims, activation=tf.nn.leaky_relu,
@@ -63,7 +63,7 @@ class CriticNetwork():
             num_states: number of states in the nn
             action_high: the top value from the action
         '''
-        last_init = tf.random_normal_initializer(stddev=0.0005)
+        last_init = tf.random_uniform_initializer(minval=-0.003, maxval=0.003)
 
         state_input = keras.layers.Input(shape=(self.num_states), dtype=tf.float32)
         state_out = keras.layers.Dense(self.fc1_dims, activation=tf.nn.leaky_relu,

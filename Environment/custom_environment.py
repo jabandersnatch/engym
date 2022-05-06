@@ -86,7 +86,7 @@ class StackedBarsEnv(Env):
             self 
             action = np.array()
         """
-        r_bar = action
+        r_bar = action[0]
         t_mass, total_def, position = self.state
 
         current_mass = r_bar ** 2 * np.pi * self.h * self.rho

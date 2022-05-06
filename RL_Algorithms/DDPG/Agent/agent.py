@@ -80,15 +80,13 @@ class Agent:
                 tf.TensorSpec(shape=[None, 1], dtype=tf.float32),
             ]
         )
-        def update_weights(states, actions, rewards, next_states, dones) -> tuple:
+        def update_weights(s, a, r, sn, d) -> tuple:
             '''
             Function to update weights with optimimzer
             '''
             with tf.GradientTape() as tape:
-                # define target
-                y = rewards + self.gamma * (1 - dones) * self.critic_target([next_states, self.actor_target(next_states)])
-                # define the delta Q
-                critic_loss = tf.math.reduce_mean(tf.math.square(y - self.critic_network([states, actions])))
+                y = r + self.gamma * (1-d) * self.critic_target([sn, self.actor_target(sn)])
+                critic_loss = tf.math.reduce_mean(tf.math.abs(y-self.critic_network([s, a])))
             critic_grad = tape.gradient(critic_loss, self.critic_network.trainable_variables)
             self.critic_optimizer.apply_gradients(
                 zip(critic_grad, self.critic_network.trainable_variables)
@@ -96,12 +94,11 @@ class Agent:
 
             with tf.GradientTape() as tape:
                 # define the delta mu
-                actor_loss = -tf.math.reduce_mean(self.critic_network([states, self.actor_network(states)]))
+                actor_loss = -tf.math.reduce_mean(self.critic_network([s, self.actor_network(s)]))
             actor_grad = tape.gradient(actor_loss, self.actor_network.trainable_variables)
             self.actor_optimizer.apply_gradients(
                 zip(actor_grad, self.actor_network.trainable_variables)
             )
-
             return critic_loss, actor_loss
         
         self.update_weights = update_weights
@@ -124,9 +121,7 @@ class Agent:
                            )
         self.cur_action = np.clip(self.cur_action, self.action_low, self.action_high)
 
-        self.cur_action = np.squeeze(self.cur_action)
-
-        return [self.cur_action]
+        return self.cur_action
 
     def remember(self, prev_state, reward, state, done):
         '''
