@@ -9,12 +9,12 @@ from RL_Algorithms.DDPG.Agent.agent import Agent
 from Environment.custom_environment import StackedBarsEnv
 from .utils import plotLearning
 
-CHKPT_PATH = './checkpoints/DDPG'
+CHKPT_PATH_DDPG = './checkpoints/DDPG'
 class TrainDDPGAgent():
     def __init__(self, name = 'def_run_h', n_episodes=100, show_every=100,  lr_critic = 0.002, 
-                 lr_actor = 0.001, rho=0.005, batch_size = 64, buffer_size=50000, 
+                 lr_actor = 0.001, rho=0.005, batch_size = 128, buffer_size=50000, 
                  fc1_dims = 256, fc2_dims = 128, fc3_dims = 64, gamma = 0.99, warm_up=1, 
-                 eps_greedy = 1, use_noise = True, learn = True, unbalance_p = 0.8, 
+                 eps_greedy = 0.99, use_noise = True, learn = True, unbalance_p = 0.8, 
                  save_weights = True, load_weights = True, buffer_unbalance_gap = 0.5):
         
         self.name = name
@@ -65,7 +65,7 @@ class TrainDDPGAgent():
         logging.basicConfig()
         logging.getLogger().setLevel(logging.INFO)
 
-        weight_path = CHKPT_PATH +'_'+ self.name
+        weight_path = CHKPT_PATH_DDPG +'_'+ self.name
         logging.info('Loading weights from %s*, make sure the folder exists', weight_path)
         if self.load_weights:
             self.agent.load_weights(weight_path)
@@ -117,3 +117,4 @@ class TrainDDPGAgent():
         self.agent.save_weights(weight_path)
 
         logging.info('Training done...')
+
