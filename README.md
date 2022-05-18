@@ -29,3 +29,15 @@ This repository is based on the openai [gym](https://github.com/openai/gym) repo
   - [Custom enviroment](#custom-enviroment)
 - [Metrics](#metrics)
 - [References](#references)
+
+
+## References
+  
+    @misc{baselines,
+      author = {Dhariwal, Prafulla and Hesse, Christopher and Klimov, Oleg and Nichol, Alex and Plappert, Matthias and Radford, Alec and Schulman, John and Sidor, Szymon and Tan, Zhenyu and Wu, Yuhuai and Zhokhov, Peter},
+      title = {OpenAI Baselines},
+      year = {2017},
+      publisher = {GitHub},
+      journal = {GitHub repository},
+      howpublished = {\url{https://github.com/openai/baselines}},
+    }
