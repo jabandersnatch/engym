@@ -1,5 +1,5 @@
 from . import VecEnvWrapper
-from engym.RL_algorithms.common.running_mean_std import RunningMeanStd
+from engym.common.running_mean_std import RunningMeanStd
 import numpy as np
 
 

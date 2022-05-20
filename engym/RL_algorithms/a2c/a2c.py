@@ -3,9 +3,9 @@ import tensorflow as tf
 
 from engym import logger
 
-from engym.RL_algorithms.common import set_global_seeds, explained_variance
-from engym.RL_algorithms.common.models import get_network_builder
-from engym.RL_algorithms.common.policies import PolicyWithValue
+from engym.common import set_global_seeds, explained_variance
+from engym.common.models import get_network_builder
+from engym.common.policies import PolicyWithValue
 
 from engym.RL_algorithms.a2c.utils import InverseLinearTimeDecay
 from engym.RL_algorithms.a2c.runner import Runner

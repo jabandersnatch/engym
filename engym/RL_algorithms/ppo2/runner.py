@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from engym.RL_algorithms.common.runners import AbstractEnvRunner
+from engym.common.runners import AbstractEnvRunner
 
 class Runner(AbstractEnvRunner):
     """

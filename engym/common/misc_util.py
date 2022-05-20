@@ -1,4 +1,7 @@
-import gym
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore', category=DeprecationWarning)
+    import gym
 import numpy as np
 import os
 import pickle
@@ -47,7 +50,7 @@ class EzPickle(object):
 
 def set_global_seeds(i):
     try:
-        import MPI
+        from mpi4py import MPI
         rank = MPI.COMM_WORLD.Get_rank()
     except ImportError:
         rank = 0

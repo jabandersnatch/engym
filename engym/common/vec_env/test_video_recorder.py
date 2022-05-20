@@ -2,7 +2,10 @@
 Tests for asynchronous vectorized environments.
 """
 
-import gym
+import warnings 
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore', DeprecationWarning)
+    import gym
 import pytest
 import os
 import glob

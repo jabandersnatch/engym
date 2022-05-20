@@ -1,6 +1,6 @@
 import os
 from engym import logger
-from engym.RL_algorithms.common.vec_env import VecEnvWrapper
+from engym.common.vec_env import VecEnvWrapper
 from gym.wrappers.monitoring import video_recorder
 
 

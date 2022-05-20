@@ -89,7 +89,7 @@ class ShmemVecEnv(VecEnv):
 
     def get_images(self, mode='human'):
         for pipe in self.parent_pipes:
-            pipe.send(('render', mode))
+            pipe.send(('render', None))
         return [pipe.recv() for pipe in self.parent_pipes]
 
     def _decode_obses(self, obs):

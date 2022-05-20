@@ -1,10 +1,10 @@
 import tensorflow as tf
-from engym.RL_algorithms.common.policies import PolicyWithValue
+from engym.common.policies import PolicyWithValue
 
 try:
-    from engym.RL_algorithms.common.mpi_adam_optimizer import MpiAdamOptimizer
+    from engym.common.mpi_adam_optimizer import MpiAdamOptimizer
     from mpi4py import MPI
-    from engym.RL_algorithms.common.mpi_util import sync_from_root
+    from engym.common.mpi_util import sync_from_root
 except ImportError:
     MPI = None
 

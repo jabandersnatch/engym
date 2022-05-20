@@ -1,4 +1,7 @@
-import gym
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore', DeprecationWarning)
+    import gym
 
 class TimeLimit(gym.Wrapper):
     def __init__(self, env, max_episode_steps=None):
@@ -16,14 +19,4 @@ class TimeLimit(gym.Wrapper):
 
     def reset(self, **kwargs):
         self._elapsed_steps = 0
-        return self.env.reset(**kwargs)
-
-class ClipActionsWrapper(gym.Wrapper):
-    def step(self, action):
-        import numpy as np
-        action = np.nan_to_num(action)
-        action = np.clip(action, self.action_space.low, self.action_space.high)
-        return self.env.step(action)
-
-    def reset(self, **kwargs):
         return self.env.reset(**kwargs)

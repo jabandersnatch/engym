@@ -8,33 +8,33 @@ try:
 except ImportError:
     MPI = None
 
-import gym
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore', category=DeprecationWarning)
+    import gym
 from gym.wrappers import FlattenObservation, FilterObservation
 from engym import logger
 from engym.bench import Monitor
-from engym.RL_algorithms.common.misc_util import set_global_seeds
-from engym.RL_algorithms.common.vec_env.subproc_vec_env import SubprocVecEnv
-from engym.RL_algorithms.common.vec_env.dummy_vec_env import DummyVecEnv
-from engym.RL_algorithms.common.wrappers import ClipActionsWrapper
+from engym.common import set_global_seeds
+from engym.common.atari_wrappers import make_atari, wrap_deepmind
+from engym.common.vec_env.subproc_vec_env import SubprocVecEnv
+from engym.common.vec_env.dummy_vec_env import DummyVecEnv
+from engym.common import retro_wrappers
 
 def make_vec_env(env_id, env_type, num_env, seed,
                  wrapper_kwargs=None,
-                 env_kwargs=None,
                  start_index=0,
                  reward_scale=1.0,
                  flatten_dict_observations=True,
-                 gamestate=None,
-                 initializer=None,
-                 force_dummy=False):
+                 gamestate=None):
     """
     Create a wrapped, monitored SubprocVecEnv for Atari and MuJoCo.
     """
     wrapper_kwargs = wrapper_kwargs or {}
-    env_kwargs = env_kwargs or {}
     mpi_rank = MPI.COMM_WORLD.Get_rank() if MPI else 0
     seed = seed + 10000 * mpi_rank if seed is not None else None
     logger_dir = logger.get_dir()
-    def make_thunk(rank, initializer=None):
+    def make_thunk(rank):
         return lambda: make_env(
             env_id=env_id,
             env_type=env_type,
@@ -45,43 +45,59 @@ def make_vec_env(env_id, env_type, num_env, seed,
             gamestate=gamestate,
             flatten_dict_observations=flatten_dict_observations,
             wrapper_kwargs=wrapper_kwargs,
-            env_kwargs=env_kwargs,
-            logger_dir=logger_dir,
-            initializer=initializer
+            logger_dir=logger_dir
         )
 
     set_global_seeds(seed)
-    if not force_dummy and num_env > 1:
-        return SubprocVecEnv([make_thunk(i + start_index, initializer=initializer) for i in range(num_env)])
+    if num_env > 1:
+        return SubprocVecEnv([make_thunk(i + start_index) for i in range(num_env)])
     else:
-        return DummyVecEnv([make_thunk(i + start_index, initializer=None) for i in range(num_env)])
+        return DummyVecEnv([make_thunk(start_index)])
 
 
-def make_env(env_id, env_type, mpi_rank=0, subrank=0, seed=None, reward_scale=1.0, gamestate=None, flatten_dict_observations=True, wrapper_kwargs=None, env_kwargs=None, logger_dir=None, initializer=None):
-    if initializer is not None:
-        initializer(mpi_rank=mpi_rank, subrank=subrank)
-
+def make_env(env_id, env_type, mpi_rank=0, subrank=0, seed=None, reward_scale=1.0, gamestate=None, flatten_dict_observations=True, wrapper_kwargs=None, logger_dir=None):
     wrapper_kwargs = wrapper_kwargs or {}
-    env_kwargs = env_kwargs or {}
-    if ':' in env_id:
-        import re
-        import importlib
-        module_name = re.sub(':.*','',env_id)
-        env_id = re.sub('.*:', '', env_id)
-        importlib.import_module(module_name)
-    env = gym.make(env_id, **env_kwargs)
+    if env_type == 'atari':
+        env = make_atari(env_id)
+    else:
+        env = gym.make(env_id)
 
     if flatten_dict_observations and isinstance(env.observation_space, gym.spaces.Dict):
-        env = FlattenObservation(env)
+        keys = env.observation_space.spaces.keys()
+        env = gym.wrappers.FlattenDictWrapper(env, dict_keys=list(keys))
 
-    env.seed(seed = seed + subrank if seed is not None else None)
+    env.seed(seed + subrank if seed is not None else None)
     env = Monitor(env,
                   logger_dir and os.path.join(logger_dir, str(mpi_rank) + '.' + str(subrank)),
                   allow_early_resets=True)
 
-    if isinstance(env.action_space, gym.spaces.Box):
-        env = ClipActionsWrapper(env)
+    if env_type == 'atari':
+        env = wrap_deepmind(env, **wrapper_kwargs)
+    elif env_type == 'retro':
+        if 'frame_stack' not in wrapper_kwargs:
+            wrapper_kwargs['frame_stack'] = 1
+        env = retro_wrappers.wrap_deepmind_retro(env, **wrapper_kwargs)
 
+    if reward_scale != 1:
+        env = retro_wrappers.RewardScaler(env, reward_scale)
+
+    return env
+
+
+def make_mujoco_env(env_id, seed, reward_scale=1.0):
+    """
+    Create a wrapped, monitored gym.Env for MuJoCo.
+    """
+    rank = MPI.COMM_WORLD.Get_rank()
+    myseed = seed  + 1000 * rank if seed is not None else None
+    set_global_seeds(myseed)
+    env = gym.make(env_id)
+    logger_path = None if logger.get_dir() is None else os.path.join(logger.get_dir(), str(rank))
+    env = Monitor(env, logger_path, allow_early_resets=True)
+    env.seed(seed)
+    if reward_scale != 1.0:
+        from engym.common.retro_wrappers import RewardScaler
+        env = RewardScaler(env, reward_scale)
     return env
 
 def make_robotics_env(env_id, seed, rank=0):
@@ -94,7 +110,7 @@ def make_robotics_env(env_id, seed, rank=0):
     env = Monitor(
         env, logger.get_dir() and os.path.join(logger.get_dir(), str(rank)),
         info_keywords=('is_success',))
-    env.seed(seed = seed)
+    env.seed(seed)
     return env
 
 def arg_parser():
@@ -104,12 +120,23 @@ def arg_parser():
     import argparse
     return argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
+def atari_arg_parser():
+    """
+    Create an argparse.ArgumentParser for run_atari.py.
+    """
+    print('Obsolete - use common_arg_parser instead')
+    return common_arg_parser()
+
+def mujoco_arg_parser():
+    print('Obsolete - use common_arg_parser instead')
+    return common_arg_parser()
+
 def common_arg_parser():
     """
-    Create an argparse for the environment.
+    Create an argparse.ArgumentParser for run_mujoco.py.
     """
     parser = arg_parser()
-    parser.add_argument('--env', help='environment ID', type=str, default='CartPole-v1')
+    parser.add_argument('--env', help='environment ID', type=str, default='Reacher-v2')
     parser.add_argument('--env_type', help='type of environment, used when the environment type cannot be automatically determined', type=str)
     parser.add_argument('--seed', help='RNG seed', type=int, default=None)
     parser.add_argument('--alg', help='Algorithm', type=str, default='ppo2')

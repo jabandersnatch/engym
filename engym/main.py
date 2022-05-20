@@ -2,15 +2,19 @@ import sys
 import re
 import multiprocessing
 import os.path as osp
-import gym
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore', category=DeprecationWarning)
+    import gym_engineering
+    import gym
 from collections import defaultdict
 import tensorflow as tf
 import numpy as np
 
 
-from engym.RL_algorithms.common.vec_env import VecFrameStack, VecNormalize, VecEnv
-from engym.RL_algorithms.common.vec_env.vec_video_recorder import VecVideoRecorder
-from engym.RL_algorithms.common.cmd_util import common_arg_parser, parse_unknown_args, make_vec_env, make_env
+from engym.common.vec_env import VecFrameStack, VecNormalize, VecEnv
+from engym.common.vec_env.vec_video_recorder import VecVideoRecorder
+from engym.common.cmd_util import common_arg_parser, parse_unknown_args, make_vec_env, make_env
 from engym import logger
 from importlib import import_module
 
@@ -18,6 +22,9 @@ try:
     from mpi4py import MPI
 except ImportError:
     MPI = None
+
+import warnings
+
 
 _engineer_envs = defaultdict(set)
 for env in gym.envs.registry.all():
@@ -123,7 +130,6 @@ def get_alg_module(alg, submodule=None):
     submodule = submodule or alg
     try:
         # first try to import the alg module from engym
-        print('trying to import {}'.format(alg))
         alg_module = import_module('engym.RL_algorithms.{}.{}'.format(alg, submodule))
     except ImportError:
         # then from rl_algs
@@ -209,7 +215,7 @@ def main(args):
             if not isinstance(env, VecEnv):
                 obs = np.expand_dims(np.array(obs), axis=0)
             episode_rew += rew
-            env.render(mode='human')
+            env.render()
             done_any = done.any() if isinstance(done, np.ndarray) else done
             if done_any:
                 for i in np.nonzero(done)[0]:

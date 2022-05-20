@@ -2,13 +2,16 @@
 Tests for asynchronous vectorized environments.
 """
 
-import gym
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore', DeprecationWarning)
+    import gym
 import numpy as np
 import pytest
 from .dummy_vec_env import DummyVecEnv
 from .shmem_vec_env import ShmemVecEnv
 from .subproc_vec_env import SubprocVecEnv
-from engym.RL_algorithms.common.tests.test_with_mpi import with_mpi
+from engym.common.tests.test_with_mpi import with_mpi
 
 
 def assert_venvs_equal(venv1, venv2, num_steps):
@@ -98,7 +101,7 @@ class SimpleEnv(gym.Env):
         self._cur_step = 0
         return self._cur_obs
 
-    def render(self, mode='human'):
+    def render(self, mode=None):
         raise NotImplementedError
 
 

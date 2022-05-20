@@ -1,8 +1,11 @@
 import tensorflow as tf
 from engym.RL_algorithms.a2c.utils import fc
-from engym.RL_algorithms.common.distributions import make_pdtype
+from engym.common.distributions import make_pdtype
 
-import gym
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore', DeprecationWarning)
+    import gym
 
 
 class PolicyWithValue(tf.Module):

@@ -4,8 +4,8 @@ import tensorflow as tf
 import os.path as osp
 from engym import logger
 from collections import deque
-from engym.RL_algorithms.common import explained_variance, set_global_seeds
-from engym.RL_algorithms.common.models import get_network_builder
+from engym.common import explained_variance, set_global_seeds
+from engym.common.models import get_network_builder
 try:
     from mpi4py import MPI
 except ImportError:
@@ -27,14 +27,14 @@ def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2
     Parameters:
     ----------
 
-    network:                          policy network architecture. Either string (mlp, lstm, lnlstm, cnn_lstm, cnn, cnn_small, conv_only - see engym.RL_algorithms.common/models.py for full list)
+    network:                          policy network architecture. Either string (mlp, lstm, lnlstm, cnn_lstm, cnn, cnn_small, conv_only - see engym.common/models.py for full list)
                                       specifying the standard network architecture, or a function that takes tensorflow tensor as input and returns
                                       tuple (output_tensor, extra_feed) where output tensor is the last network layer output, extra_feed is None for feed-forward
                                       neural nets, and extra_feed is a dictionary describing how to feed state into the network for recurrent neural nets.
                                       See common/models.py/lstm for more details on using recurrent nets in policies
 
-    env: engym.RL_algorithms.common.vec_env.VecEnv     environment. Needs to be vectorized for parallel environment simulation.
-                                      The environments produced by gym.make can be wrapped using engym.RL_algorithms.common.vec_env.DummyVecEnv class.
+    env: engym.common.vec_env.VecEnv     environment. Needs to be vectorized for parallel environment simulation.
+                                      The environments produced by gym.make can be wrapped using engym.common.vec_env.DummyVecEnv class.
 
 
     nsteps: int                       number of steps of the vectorized environment per update (i.e. batch size is nsteps * nenv where
@@ -69,7 +69,7 @@ def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2
 
     load_path: str                    path to load the model from
 
-    **network_kwargs:                 keyword arguments to the policy / network builder. See engym.RL_algorithms.common/policies.py/build_policy and arguments to a particular type of network
+    **network_kwargs:                 keyword arguments to the policy / network builder. See engym.common/policies.py/build_policy and arguments to a particular type of network
                                       For instance, 'mlp' network architecture has arguments num_hidden and num_layers.
 
 

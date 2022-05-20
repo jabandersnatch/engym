@@ -2,7 +2,7 @@ import contextlib
 import os
 from abc import ABC, abstractmethod
 
-from engym.RL_algorithms.common.tile_images import tile_images
+from engym.common.tile_images import tile_images
 
 class AlreadySteppingError(Exception):
     """
@@ -134,7 +134,6 @@ class VecEnv(ABC):
     def get_viewer(self):
         if self.viewer is None:
             from gym.envs.classic_control import rendering
-            self.viewer = rendering.SimpleImageViewer()
         return self.viewer
 
 class VecEnvWrapper(VecEnv):
@@ -164,7 +163,7 @@ class VecEnvWrapper(VecEnv):
         return self.venv.close()
 
     def render(self, mode='human'):
-        return self.venv.render(mode = mode)
+        return self.venv.render(mode=mode)
 
     def get_images(self):
         return self.venv.get_images()

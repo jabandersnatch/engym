@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from engym.RL_algorithms.a2c.utils import discount_with_dones
-from engym.RL_algorithms.common.runners import AbstractEnvRunner
+from engym.common.runners import AbstractEnvRunner
 
 class Runner(AbstractEnvRunner):
     """

@@ -4,7 +4,10 @@ Helpers for dealing with vectorized environments.
 
 from collections import OrderedDict
 
-import gym
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore', DeprecationWarning)
+    import gym
 import numpy as np
 
 

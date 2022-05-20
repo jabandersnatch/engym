@@ -95,7 +95,7 @@ class SubprocVecEnv(VecEnv):
     def get_images(self):
         self._assert_not_closed()
         for pipe in self.remotes:
-            pipe.send(('render', 'human'))
+            pipe.send(('render', None))
         imgs = [pipe.recv() for pipe in self.remotes]
         return imgs
 
