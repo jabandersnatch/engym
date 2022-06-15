@@ -1,10 +1,14 @@
 """
-    In this file, we will make a custom environment for training our DQN agent. This environment consist of stacking bars on top of each other.
+    In this file, we will make a custom environment for training our RL agent. This environment consist of stacking bars on top of each other.
     The agent will be able to decide the dimensions of the stacked bars. The bars must hold a given force that has being given to them as well it's own weight.
 """
 
+from turtle import position
 import numpy as np
 import gym
+from gym import logger
+from pygame import gfxdraw
+import pygame
 from gym.spaces import Box
 
 
@@ -17,7 +21,7 @@ class StackedBarsEnv(gym.Env):
     The agent will be able to decide the dimensions of the stacked bars.
     """
     def __init__(self, goal_dist:int =1000, down_force: int=200000, E: float=200e9, s_y: float=250e6, 
-                 rho: int=7800, g: float=9.81, res: int = 100) -> None:
+                 rho: int=7800, g: float=9.81, res: int = 1000) -> None:
         """
 
         ## Parameters
@@ -52,8 +56,8 @@ class StackedBarsEnv(gym.Env):
         # Set the observation space
 
         self.observation_space = Box(
-            low=np.array([self.min_mass, self.min_def, 0]), 
-            high=np.array([self.max_mass, self.max_def, goal_dist]), dtype=np.float64)
+            low=np.array([self.min_mass, self.min_def, 0, 0]), 
+            high=np.array([self.max_mass, self.max_def, goal_dist, r_max**2*np.pi]), dtype=np.float64)
 
         # Set the goal distance 
         self.goal_dist = goal_dist
@@ -71,11 +75,11 @@ class StackedBarsEnv(gym.Env):
         self.r_min = r_min
         # Set max radius
         self.r_max = r_max
-        # create a empty numpy array 1x3 to store the position, mass, total deformation and deformation of the bar
-        self.list_render = np.array([0, 0, goal_dist, 0, 0], dtype=np.float64)
 
-        print('The minimun radius is: {}'.format(self.r_min))
-        print('The maximun radius is: {}'.format(self.r_max))
+        # create a empty numpy array 1x3 to store the position, mass, total deformation and deformation of the bar
+        self.screen = None
+
+        self.clock = None
 
     def step(self, action: np.ndarray) -> tuple:
         """
@@ -86,9 +90,11 @@ class StackedBarsEnv(gym.Env):
             action = np.array()
         """
         r_bar = action[0]
-        t_mass, total_def, position = self.state
+        t_mass, total_def, position, area = self.state
 
-        current_mass = r_bar ** 2 * np.pi * self.h * self.rho
+        area = r_bar**2 * np.pi
+
+        current_mass = area * self.h * self.rho
         # Calculate mass of the bar
         t_mass += current_mass
         # calculate the weight of the bar
@@ -98,7 +104,7 @@ class StackedBarsEnv(gym.Env):
 
         # Calculate the normal stress of the section
 
-        n_stress = (t_force) / (r_bar ** 2 * np.pi)
+        n_stress = (t_force) / (area)
 
         # Calculate the deformation of the section
 
@@ -112,17 +118,12 @@ class StackedBarsEnv(gym.Env):
 
         # Save the current state in the array
 
-        self.state = np.array([t_mass, total_def, position], dtype=np.float64)
+        self.state = np.array([t_mass, total_def, position, area], dtype=np.float64)
         # Check if the bar has reached the goal
         done = (position == 0)
 
         reward = 1/np.abs(n_stress-self.s_y+0.000001) * position/self.goal_dist
 
-
-        state_action_holder= np.concatenate((self.state, action, self.h), axis=None)
-        self.list_render = np.vstack((self.list_render, state_action_holder)) 
-            
-            
         # Store the state
 
         return self.state, reward, done, {}
@@ -131,18 +132,95 @@ class StackedBarsEnv(gym.Env):
         """
         This function is called every time the environment is reset.
         """
-        self.state = np.array([0, 0, self.goal_dist], dtype=np.float64)
+        self.state = np.array([0, 0, self.goal_dist, 0], dtype=np.float64)
         self.total_weight = 0
-        self.list_render = np.array([0, 0, self.goal_dist, 0, 0], dtype=np.float64)
-
+        self.screen = None
+        self.clock = None
         return self.state
     
     def render(self, mode='human'):
         """
         This function is called every time the environment is rendered.
         """
+        screen_width = 200
+        screen_height = 800
+
+        world_width = self.goal_dist
+        scale_y = screen_height / world_width
+        scale_x = screen_width / (self.r_max * 2)
+
+        if self.state is None:
+            return None
+
+        x = self.state
+        r_bar = np.sqrt(x[3] / (np.pi))
+        position = x[2]
+    
+
+        if self.screen is None:
+            pygame.init()
+            pygame.display.init()
+            self.screen = pygame.display.set_mode((screen_width+20, screen_height+20))
+            self.font = pygame.font.SysFont("stencil", 20)
+            self.font_small = pygame.font.SysFont("stencil", 15)
+
+        if self.clock is None:
+            self.clock = pygame.time.Clock()
+
+        self.surf = pygame.Surface((screen_width+20, screen_height+20))
+        self.surf.fill((0, 0, 0))
+
+        # Draw the goal
+        gfxdraw.filled_circle(self.screen, int(screen_width/2), 720, 5, (255, 255, 255))
+
+        # Draw the bars
+        # gfxdraw.filled_polygon(self.surf, (
+        #     int(screen_width/2 - r_bar * scale_x), int(position * scale_y + screen_height/2),
+        #     int(screen_width/2 + r_bar * scale_x), int(position * scale_y + screen_height/2),
+        #     int(screen_width/2), int(position * scale_y + screen_height/2 + minimun_bar_width * scale_x)), (255, 255, 255))
+
+
+        a1,b1 = int(screen_width/2 - r_bar * scale_x), int(position * scale_y)
+        a2,b2 = int(screen_width/2 + r_bar * scale_x), int(position * scale_y)
+        a3,b3 = int(screen_width/2 + r_bar * scale_x), int(position * scale_y + self.h * scale_y)
+        a4,b4 = int(screen_width/2 - r_bar * scale_x), int(position * scale_y + self.h * scale_y)
+
+        gfxdraw.filled_polygon(self.screen, ([a1,b1],[a2,b2],[a3,b3],[a4,b4]), (255, 255, 255))
+
+
+        self.surf = pygame.transform.flip(self.surf, False, True)
+        pygame.display.update()
+    
+
         if mode == 'human':
-            pass
+            # Draw the bars
+            pygame.event.pump()
+            self.clock.tick(60)
+            pygame.display.flip()
+        
+        if mode == 'rgb_array':
+            return np.transpose(
+                np.array(pygame.surfarray.pixels3d(self.screen), axes = (1,0,2))
+            )
+
+
 
     def close(self)->None:
         pass
+
+    
+def main ():
+    env = StackedBarsEnv()
+    env.reset()
+    while env.state[2] > 0:
+        env.render()
+        action = env.action_space.sample()
+        if action < 0:
+            pass
+            
+        env.step(action)
+
+    env.close()
+
+if __name__ == '__main__':
+    main()
