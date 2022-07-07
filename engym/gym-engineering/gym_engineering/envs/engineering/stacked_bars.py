@@ -21,7 +21,7 @@ class StackedBarsEnv(gym.Env):
     The agent will be able to decide the dimensions of the stacked bars.
     """
     def __init__(self, goal_dist:int =1000, down_force: int=200000, E: float=200e9, s_y: float=250e6, 
-                 rho: int=7800, g: float=9.81, res: int = 1000) -> None:
+                 rho: int=7800, g: float=9.81, res: int = 100) -> None:
         """
 
         ## Parameters
@@ -30,7 +30,7 @@ class StackedBarsEnv(gym.Env):
         * **E** (float): The Young's modulus of the bars.
         * **s_y** (float): The yield stress of the bars.
         * **rho** (float): The density of the bars.
-        * **g** (float): The gravity.
+        * **g** (float): The gravity acceleration.
         """
 
         # Set the action space
@@ -41,23 +41,24 @@ class StackedBarsEnv(gym.Env):
 
         self.action_space = Box(low=np.array([r_min]), high=np.array([r_max]), dtype=np.float64)
 
+        self.res = res
         # Calculate the height for the bar segment
         self.h = goal_dist/res
         # Calculate the min mass
         self.min_mass = r_min ** 2 * np.pi * goal_dist * rho
         # Calculate the min deformation
-        self.min_def = ((down_force+r_min**2*np.pi*goal_dist*rho*g)/(r_min**2 * np.pi))/E * goal_dist
+        self.max_def = ((down_force+r_min**2*np.pi*goal_dist*rho*g)/(r_min**2 * np.pi))/E * goal_dist
 
         # Calculate the max mass
         self.max_mass = r_max ** 2 * np.pi * goal_dist * rho
         # Calculate the max deformation
-        self.max_def = ((down_force+r_max**2*np.pi*goal_dist*rho*g)/(r_max**2 * np.pi))/E * goal_dist
+        self.min_def = ((down_force+r_max**2*np.pi*goal_dist*rho*g)/(r_max**2 * np.pi))/E * goal_dist
 
         # Set the observation space
 
         self.observation_space = Box(
-            low=np.array([self.min_mass, self.min_def, 0, 0]), 
-            high=np.array([self.max_mass, self.max_def, goal_dist, r_max**2*np.pi]), dtype=np.float64)
+            low=np.array([self.min_mass, self.max_def, 0, 0]), 
+            high=np.array([self.max_mass, self.min_def, goal_dist, r_max**2*np.pi]), dtype=np.float64)
 
         # Set the goal distance 
         self.goal_dist = goal_dist
@@ -109,7 +110,6 @@ class StackedBarsEnv(gym.Env):
         # Calculate the deformation of the section
 
         d_def = n_stress / self.E * self.h
-        
         # Calculate the total deformation of the bar
 
         total_def += d_def
@@ -120,9 +120,14 @@ class StackedBarsEnv(gym.Env):
 
         self.state = np.array([t_mass, total_def, position, area], dtype=np.float64)
         # Check if the bar has reached the goal
-        done = (position == 0)
+        done = bool(
+            n_stress > self.s_y 
+            or position == 0 
+            )
 
-        reward = 1/np.abs(n_stress-self.s_y+0.000001) * position/self.goal_dist
+        reward = 1/self.res
+        if done == True:
+            reward = total_def/self.min_def
 
         # Store the state
 
@@ -155,7 +160,10 @@ class StackedBarsEnv(gym.Env):
         x = self.state
         r_bar = np.sqrt(x[3] / (np.pi))
         position = x[2]
-    
+        total_mass = x[0]
+        total_deff = x[1]
+
+            
 
         if self.screen is None:
             pygame.init()
@@ -171,14 +179,7 @@ class StackedBarsEnv(gym.Env):
         self.surf.fill((0, 0, 0))
 
         # Draw the goal
-        gfxdraw.filled_circle(self.screen, int(screen_width/2), 720, 5, (255, 255, 255))
-
-        # Draw the bars
-        # gfxdraw.filled_polygon(self.surf, (
-        #     int(screen_width/2 - r_bar * scale_x), int(position * scale_y + screen_height/2),
-        #     int(screen_width/2 + r_bar * scale_x), int(position * scale_y + screen_height/2),
-        #     int(screen_width/2), int(position * scale_y + screen_height/2 + minimun_bar_width * scale_x)), (255, 255, 255))
-
+        gfxdraw.filled_circle(self.screen, int(screen_width/2), 800, 5, (0, 255, 255))
 
         a1,b1 = int(screen_width/2 - r_bar * scale_x), int(position * scale_y)
         a2,b2 = int(screen_width/2 + r_bar * scale_x), int(position * scale_y)
@@ -189,18 +190,26 @@ class StackedBarsEnv(gym.Env):
 
 
         self.surf = pygame.transform.flip(self.surf, False, True)
+        
+        if position == 0:
+            text_t_mass = self.font.render('Total mass: {} [kg]'.format(total_mass), True, (255, 255, 255))
+            self.screen.blit(text_t_mass, (3, 5))
+            text_t_deff = self.font.render('Total deformation: {} [µm]'.format(total_deff), True, (255, 255, 255))
+            self.screen.blit(text_t_deff, (3, 25))
+            pygame.time.delay(500)
+            pygame.display.update()
         pygame.display.update()
     
 
         if mode == 'human':
             # Draw the bars
             pygame.event.pump()
-            self.clock.tick(60)
+            self.clock.tick(15)
             pygame.display.flip()
         
         if mode == 'rgb_array':
             return np.transpose(
-                np.array(pygame.surfarray.pixels3d(self.screen), axes = (1,0,2))
+                np.array(pygame.surfarray.pixels3d(self.screen)), axes = (1,0,2)
             )
 
 
@@ -208,19 +217,3 @@ class StackedBarsEnv(gym.Env):
     def close(self)->None:
         pass
 
-    
-def main ():
-    env = StackedBarsEnv()
-    env.reset()
-    while env.state[2] > 0:
-        env.render()
-        action = env.action_space.sample()
-        if action < 0:
-            pass
-            
-        env.step(action)
-
-    env.close()
-
-if __name__ == '__main__':
-    main()
