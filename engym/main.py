@@ -11,7 +11,6 @@ from collections import defaultdict
 import tensorflow as tf
 import numpy as np
 
-
 from engym.common.vec_env import VecFrameStack, VecNormalize, VecEnv
 from engym.common.vec_env.vec_video_recorder import VecVideoRecorder
 from engym.common.cmd_util import common_arg_parser, parse_unknown_args, make_vec_env, make_env
@@ -120,7 +119,7 @@ def get_env_type(args):
     return env_type, env_id
 
 
-def get_default_network(env_type):
+def get_default_network(env_type) -> str:
     if env_type in {'atari', 'retro'}:
         return 'cnn'
     else:

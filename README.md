@@ -16,20 +16,24 @@ This repository is based on the openai [gym](https://github.com/openai/gym) repo
 - [Introduction](#introduction)
 - [Install guide](#install-guide)
   - [python](#python)
-  - [gpu](#gpu)
+  - [GPU](#gpu)
+  - [mujoco](#mujoco)
 - [Theory](#theory)
   - [DDPG](#ddpg)
   - [PPO](#ppo)
-  - [TD3](#td3)
+  - [DQP](#dqn)
 - [ENV](#env)
   - [What is a enviroment](#what-is-a-enviroment)
+  - [How to create a custom enviroment](#how-to-create-a-custom-enviroment)
   - [Polebuilder](#polebuilder)
   - [Trussbuilder](#trussbuilder)
   - [Self driving ackerman robot](#self-driving-ackerman-robot)
-  - [Custom enviroment](#custom-enviroment)
 - [Metrics](#metrics)
 - [References](#references)
 
+## Introduction
+
+Well this is ackward.
 
 ## References
   
