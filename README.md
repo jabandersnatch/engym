@@ -16,16 +16,32 @@ This repository is based on the openai [gym](https://github.com/openai/gym) repo
 - [Introduction](#introduction)
 - [Install guide](#install-guide)
   - [python](#python)
-  - [gpu](#gpu)
+  - [GPU](#gpu)
+  - [mujoco](#mujoco)
 - [Theory](#theory)
   - [DDPG](#ddpg)
   - [PPO](#ppo)
-  - [TD3](#td3)
+  - [DQP](#dqn)
 - [ENV](#env)
   - [What is a enviroment](#what-is-a-enviroment)
+  - [How to create a custom enviroment](#how-to-create-a-custom-enviroment)
   - [Polebuilder](#polebuilder)
   - [Trussbuilder](#trussbuilder)
   - [Self driving ackerman robot](#self-driving-ackerman-robot)
-  - [Custom enviroment](#custom-enviroment)
 - [Metrics](#metrics)
 - [References](#references)
+
+## Introduction
+
+Well this is ackward.
+
+## References
+  
+    @misc{baselines,
+      author = {Dhariwal, Prafulla and Hesse, Christopher and Klimov, Oleg and Nichol, Alex and Plappert, Matthias and Radford, Alec and Schulman, John and Sidor, Szymon and Tan, Zhenyu and Wu, Yuhuai and Zhokhov, Peter},
+      title = {OpenAI Baselines},
+      year = {2017},
+      publisher = {GitHub},
+      journal = {GitHub repository},
+      howpublished = {\url{https://github.com/openai/baselines}},
+    }
