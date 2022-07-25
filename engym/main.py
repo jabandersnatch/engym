@@ -26,7 +26,7 @@ import warnings
 
 
 _engineer_envs = defaultdict(set)
-for env in gym.envs.registry.all():
+for env in gym.envs.registry.values():
     env_type = env.entry_point.split(':')[0].split('.')[-1]
     _engineer_envs[env_type].add(env.id)
 
@@ -99,7 +99,7 @@ def get_env_type(args):
         return args.env_type, env_id
 
     # Re-parse the gym registry, since we could have new envs since last time.
-    for env in gym.envs.registry.all():
+    for env in gym.envs.registry.values():
         env_type = env.entry_point.split(':')[0].split('.')[-1]
         _engineer_envs[env_type].add(env.id)  # This is a set so add is idempotent
 

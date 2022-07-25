@@ -1,1 +1,2 @@
 from gym_engineering.envs.engineering.stacked_bars import StackedBarsEnv
+from gym_engineering.evns.engineering.balancing_robot import BalancingRobotEnv

@@ -3,7 +3,6 @@
     The agent will be able to decide the dimensions of the stacked bars. The bars must hold a given force that has being given to them as well it's own weight.
 """
 
-from turtle import position
 import numpy as np
 import gym
 from gym import logger
@@ -14,7 +13,7 @@ from gym.spaces import Box
 
 class StackedBarsEnv(gym.Env):
 
-    metadata = {'render.modes': ['human']}
+    metadata = {'render_modes': ['human']}
 
     """
     This is a custom environment for stacking bars on top of each other.
