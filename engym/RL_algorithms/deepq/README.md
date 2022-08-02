@@ -30,7 +30,7 @@ In particular notice that once `deepq.learn` finishes training it returns `act` 
 - [baselines/deepq/defaults.py](defaults.py) - settings for training on atari. Run 
 
 ```bash
-python -m baselines.run --alg=deepq --env=PongNoFrameskip-v4 
+python main.py --alg=deepq --env=PongNoFrameskip-v4 
 ```
 to train on Atari Pong (see more in repo-wide [README.md](../../README.md#training-models))
 

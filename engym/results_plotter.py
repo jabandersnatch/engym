@@ -64,14 +64,17 @@ def plot_curves(xy_list, xaxis, yaxis, title):
 
 
 def split_by_task(taskpath):
-    return taskpath['dirname'].split('/')[-1].split('-')[0]
+    if type(taskpath) is dict:
+        return taskpath['dirname'].split('/')[-1].split('-')[0]
+    else:
+        return taskpath.dirname.split('/')[-1].split('-')[0]
 
 def plot_results(dirs, num_timesteps=10e6, xaxis=X_TIMESTEPS, yaxis=Y_REWARD, title='', split_fn=split_by_task):
     results = plot_util.load_results(dirs)
-    plot_util.plot_results(results, xy_fn=lambda r: ts2xy(r['monitor'], xaxis, yaxis), split_fn=split_fn, average_group=True, resample=int(1e6))
+    plot_util.plot_results(results, xy_fn=lambda r: ts2xy(r.monitor, xaxis, yaxis), split_fn= split_fn, average_group=True, resample=int(1e6))
 
 # Example usage in jupyter-notebook
-# from baselines.results_plotter import plot_results
+# from engym.results_plotter import plot_results
 # %matplotlib inline
 # plot_results("./log")
 # Here ./log is a directory containing the monitor.csv files
